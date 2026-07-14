@@ -1,0 +1,16 @@
+{
+  "name": "thiGPLX",
+  "displayName": "thiGPLX",
+  "expo": {
+    "name": "thiGPLX",
+    "slug": "thiGPLX",
+    "version": "1.0.0",
+    "splash": {
+      "image": "./src/assets/Intro.png",
+      "resizeMode": "cover"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}

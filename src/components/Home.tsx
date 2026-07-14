@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpen, Flame, FileText, Users, Sliders, Settings, Signpost, Compass, Award, HelpCircle, ArrowRight, CheckCircle2, X, Car } from 'lucide-react';
+import { BookOpen, Flame, FileText, Users, Sliders, Settings, Signpost, Compass, Award, HelpCircle, ArrowRight, CheckCircle2, X, Car, Trash2 } from 'lucide-react';
 import { QUESTIONS, TOPICS } from '../data/questions';
 import { LICENSE_CLASSES, filterQuestionsForLicense, isQuestionCritical, generateFixedExamQuestions } from '../data/licenses';
 import { TopicKey, LicenseClassId } from '../types';
@@ -11,6 +11,7 @@ interface HomeProps {
   onSelectTopic: (topic: TopicKey) => void;
   onSelectResource: (view: 'signs' | 'laws' | 'tips' | 'practical') => void;
   userProgress: Record<number, boolean>; // questionId -> isCorrect
+  onResetProgress: () => void;
 }
 
 export default function Home({ 
@@ -19,7 +20,8 @@ export default function Home({
   onStartExam, 
   onSelectTopic, 
   onSelectResource, 
-  userProgress 
+  userProgress,
+  onResetProgress
 }: HomeProps) {
   const [showFixedExams, setShowFixedExams] = React.useState(false);
 
@@ -101,6 +103,26 @@ export default function Home({
                   className="bg-amber-400 h-full rounded-full transition-all duration-500"
                   style={{ width: `${progressPercentage}%` }}
                 ></div>
+              </div>
+              <div className="pt-1 flex justify-end">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (totalQuestionsAnswered > 0) {
+                      onResetProgress();
+                    }
+                  }}
+                  disabled={totalQuestionsAnswered === 0}
+                  className={`text-[9px] font-extrabold transition-all flex items-center gap-1 select-none ${
+                    totalQuestionsAnswered > 0
+                      ? 'text-red-200 hover:text-white cursor-pointer'
+                      : 'text-blue-300/50 cursor-not-allowed'
+                  }`}
+                  title={totalQuestionsAnswered > 0 ? "Xóa toàn bộ lịch sử ôn tập và thi thử" : "Chưa có tiến độ học tập để xóa"}
+                >
+                  <Trash2 className="w-2.5 h-2.5" />
+                  <span>Xóa lịch sử ôn & thi</span>
+                </button>
               </div>
             </div>
           </div>

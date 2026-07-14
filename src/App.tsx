@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Award, ShieldCheck, Heart, UserCheck } from 'lucide-react';
+import { BookOpen, Award, ShieldCheck, Heart, UserCheck, Trash2 } from 'lucide-react';
 import Home from './components/Home';
 import ExamSession from './components/ExamSession';
 import TopicReview from './components/TopicReview';
 import SignboardsLookUp from './components/SignboardsLookUp';
 import LawsLookUp from './components/LawsLookUp';
 import TipsCarousel from './components/TipsCarousel';
+import Support from './components/Support';
 import { TopicKey, LicenseClassId } from './types';
 import { LICENSE_CLASSES } from './data/licenses';
 
-type ActiveView = 'home' | 'exam' | 'review' | 'signs' | 'laws' | 'tips';
+type ActiveView = 'home' | 'exam' | 'review' | 'signs' | 'laws' | 'tips' | 'support';
 
 export default function App() {
   const [activeView, setActiveView] = useState<ActiveView>('home');
@@ -63,7 +64,7 @@ export default function App() {
   };
 
   const handleResetProgress = () => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa tất cả lịch sử ôn tập để học lại từ đầu?')) {
+    if (window.confirm('Bạn có chắc chắn muốn xóa tất cả lịch sử ôn tập và thi thử để học lại từ đầu?')) {
       setUserProgress({});
       try {
         localStorage.removeItem('gplx_user_progress');
@@ -135,19 +136,34 @@ export default function App() {
               </select>
             </div>
 
-            {Object.keys(userProgress).length > 0 && (
-              <button
-                onClick={handleResetProgress}
-                className="text-xs text-red-500 hover:text-red-700 font-semibold bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-full border border-red-100 transition-colors cursor-pointer hidden sm:inline-block"
-              >
-                Xóa lịch sử ôn
-              </button>
-            )}
+            <button
+              onClick={handleResetProgress}
+              title={Object.keys(userProgress).length > 0 ? "Xóa lịch sử ôn tập và thi" : "Chưa có lịch sử để xóa"}
+              disabled={Object.keys(userProgress).length === 0}
+              className={`text-[11px] sm:text-xs font-extrabold px-2.5 py-1.5 rounded-full border transition-all flex items-center gap-1 sm:gap-1.5 flex-shrink-0 shadow-sm ${
+                Object.keys(userProgress).length > 0
+                  ? 'text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 border-red-100 cursor-pointer'
+                  : 'text-slate-400 bg-slate-50 border-slate-200 cursor-not-allowed opacity-60'
+              }`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Xóa lịch sử ôn & thi</span>
+              <span className="sm:hidden">Xóa lịch sử</span>
+            </button>
             <div className="flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-emerald-100 font-extrabold flex-shrink-0">
               <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
               <span className="hidden sm:inline">Chính xác 100%</span>
               <span className="sm:hidden">100%</span>
             </div>
+
+            <button 
+              onClick={() => setActiveView('support')}
+              className="flex items-center gap-1.5 px-3 md:px-4 py-1.5 md:py-2 border border-pink-200 bg-pink-50 hover:bg-pink-100 text-pink-600 rounded-full text-[11px] sm:text-sm font-bold shadow-sm hover:shadow transition-all justify-center shrink-0 ml-1.5 whitespace-nowrap cursor-pointer select-none animate-bounce"
+              title="Ủng hộ phát triển dự án"
+            >
+              <Heart className="w-3.5 h-3.5 md:w-5 md:h-5 text-pink-500 shrink-0 fill-pink-500 animate-pulse" />
+              <span>Ủng hộ</span>
+            </button>
           </div>
         </div>
       </header>
@@ -162,6 +178,7 @@ export default function App() {
             onSelectTopic={handleSelectTopic}
             onSelectResource={handleSelectResource}
             userProgress={userProgress as any}
+            onResetProgress={handleResetProgress}
           />
         )}
 
@@ -204,6 +221,12 @@ export default function App() {
         {activeView === 'tips' && (
           <TipsCarousel
             licenseClass={licenseClass}
+            onBack={() => setActiveView('home')}
+          />
+        )}
+
+        {activeView === 'support' && (
+          <Support
             onBack={() => setActiveView('home')}
           />
         )}

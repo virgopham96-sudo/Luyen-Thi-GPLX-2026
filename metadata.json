@@ -1,0 +1,8 @@
+{
+  "name": "Luyện Thi GPLX Việt Nam",
+  "description": "Ứng dụng ôn thi lý thuyết lái xe máy, xe điện và ô tô các hạng A1, A2, B1, B2, C, D, E, F trọn bộ 600 câu hỏi mới nhất chuẩn Tổng Cục Đường Bộ Việt Nam.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, Info, Flame, ChevronRight, ChevronLeft } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, Info, Flame, ChevronRight, ChevronLeft, ArrowRight } from 'lucide-react';
 import { Question, TopicKey, LicenseClassId } from '../types';
 import { QUESTIONS, TOPICS } from '../data/questions';
 import { filterQuestionsForLicense, isQuestionCritical } from '../data/licenses';
@@ -16,6 +16,29 @@ export default function TopicReview({ licenseClass, topicKey, onBack, onSaveProg
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [sessionAnswers, setSessionAnswers] = useState<Record<number, string>>({});
+
+  const [autoNext, setAutoNext] = useState(() => {
+    const saved = localStorage.getItem('gplx_auto_next');
+    return saved === null ? true : saved === 'true';
+  });
+  const autoNextTimeoutRef = useRef<any>(null);
+
+  // Save auto-next setting
+  useEffect(() => {
+    localStorage.setItem('gplx_auto_next', String(autoNext));
+  }, [autoNext]);
+
+  // Clear auto-next timeout on question change or unmount
+  useEffect(() => {
+    if (autoNextTimeoutRef.current) {
+      clearTimeout(autoNextTimeoutRef.current);
+    }
+    return () => {
+      if (autoNextTimeoutRef.current) {
+        clearTimeout(autoNextTimeoutRef.current);
+      }
+    };
+  }, [currentIndex]);
 
   useEffect(() => {
     let filtered: Question[] = [];
@@ -35,19 +58,6 @@ export default function TopicReview({ licenseClass, topicKey, onBack, onSaveProg
   const activeTopic = TOPICS.find(t => t.key === topicKey);
   const currentQ = questions[currentIndex];
 
-  const handleSelectAnswer = (letter: string) => {
-    // If already answered this question in this session, don't allow re-selection
-    if (sessionAnswers[currentQ.id]) return;
-
-    setSessionAnswers(prev => ({
-      ...prev,
-      [currentQ.id]: letter
-    }));
-
-    const isCorrect = letter === currentQ.answer;
-    onSaveProgress(currentQ.id, isCorrect);
-  };
-
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
@@ -59,6 +69,61 @@ export default function TopicReview({ licenseClass, topicKey, onBack, onSaveProg
       setCurrentIndex(currentIndex - 1);
     }
   };
+
+  const handleSelectAnswer = (letter: string) => {
+    // If already answered this question in this session, don't allow re-selection
+    if (sessionAnswers[currentQ.id]) return;
+
+    setSessionAnswers(prev => ({
+      ...prev,
+      [currentQ.id]: letter
+    }));
+
+    const isCorrect = letter === currentQ.answer;
+    onSaveProgress(currentQ.id, isCorrect);
+
+    // Auto-Next feature
+    if (autoNext && currentIndex < questions.length - 1) {
+      if (autoNextTimeoutRef.current) {
+        clearTimeout(autoNextTimeoutRef.current);
+      }
+      autoNextTimeoutRef.current = setTimeout(() => {
+        setCurrentIndex(prev => {
+          if (prev < questions.length - 1) {
+            return prev + 1;
+          }
+          return prev;
+        });
+      }, 300);
+    }
+  };
+
+  // Keyboard Shortcuts Keydown Listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+      
+      if (e.key === 'ArrowLeft') {
+        handlePrev();
+      } else if (e.key === 'ArrowRight') {
+        handleNext();
+      } else if (['1', '2', '3', '4'].includes(e.key)) {
+        const idx = parseInt(e.key) - 1;
+        const currentQ = questions[currentIndex];
+        if (currentQ && idx < currentQ.options.length) {
+          const letter = ['A', 'B', 'C', 'D'][idx];
+          handleSelectAnswer(letter);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [currentIndex, questions, sessionAnswers, autoNext]);
 
   // Stats
   const answeredCount = Object.keys(sessionAnswers).length;
@@ -162,7 +227,12 @@ export default function TopicReview({ licenseClass, topicKey, onBack, onSaveProg
                       disabled={!!userAns}
                       className={`w-full text-left p-4 rounded-xl border text-sm transition-all duration-150 flex items-start gap-3 cursor-pointer ${optionStyles}`}
                     >
-                      <span className="font-mono font-bold">{idx + 1}.</span>
+                      <kbd className="hidden sm:inline-flex items-center justify-center font-mono font-extrabold w-5 h-5 text-[11px] bg-white text-slate-400 border border-slate-200/80 rounded shadow-sm shrink-0">
+                        {idx + 1}
+                      </kbd>
+                      <span className="sm:hidden font-mono font-extrabold text-slate-500 shrink-0">
+                        {idx + 1}.
+                      </span>
                       <span className="flex-1">{option}</span>
                       
                       {userAns && isCorrectAnswer && (
@@ -177,21 +247,39 @@ export default function TopicReview({ licenseClass, topicKey, onBack, onSaveProg
               </div>
 
               {/* Nav actions */}
-              <div className="flex justify-between items-center pt-4 border-t border-slate-50">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-4 border-t border-slate-50">
                 <button
                   onClick={handlePrev}
                   disabled={currentIndex === 0}
-                  className="px-4 py-2 text-xs md:text-sm font-semibold text-slate-500 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 flex items-center gap-1 cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2 text-xs md:text-sm font-semibold text-slate-500 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
-                  Câu trước
+                  <span>Câu trước</span>
+                  <kbd className="hidden md:inline-flex items-center justify-center font-mono font-extrabold px-1.5 py-0.5 text-[9px] bg-slate-50 text-slate-400 border border-slate-200 rounded shadow-sm">
+                    ←
+                  </kbd>
                 </button>
+
+                {/* Auto Next Toggle */}
+                <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-500 font-bold hover:text-slate-700 bg-slate-50 px-3.5 py-1.5 rounded-full border border-slate-100 transition-all shadow-sm">
+                  <input
+                    type="checkbox"
+                    checked={autoNext}
+                    onChange={(e) => setAutoNext(e.target.checked)}
+                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer"
+                  />
+                  <span>Tự động chuyển câu (300ms)</span>
+                </label>
+
                 <button
                   onClick={handleNext}
                   disabled={currentIndex === questions.length - 1}
-                  className="px-4 py-2 text-xs md:text-sm font-semibold text-slate-500 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 flex items-center gap-1 cursor-pointer"
+                  className="w-full sm:w-auto px-4 py-2 text-xs md:text-sm font-semibold text-slate-500 border border-slate-200 rounded-lg disabled:opacity-40 hover:bg-slate-50 flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  Câu sau
+                  <span>Câu sau</span>
+                  <kbd className="hidden md:inline-flex items-center justify-center font-mono font-extrabold px-1.5 py-0.5 text-[9px] bg-slate-50 text-slate-400 border border-slate-200 rounded shadow-sm">
+                    →
+                  </kbd>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
